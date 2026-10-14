@@ -267,6 +267,9 @@ class Settings:
         token = os.environ.get("VOOI_BEARER_TOKEN")
         if not token:
             raise RuntimeError("VOOI_BEARER_TOKEN required")
+        dry_run_value = os.environ.get("BOT_DRY_RUN", "true").strip().lower()
+        if dry_run_value not in ("1", "true", "yes", "0", "false", "no"):
+            raise RuntimeError("BOT_DRY_RUN must be an explicit true/false value")
         target = tuple(
             e.strip() for e in os.environ.get("BOT_TARGET_EXCHANGES", "hyperliquid,lighter").split(",")
             if e.strip()
@@ -335,7 +338,7 @@ class Settings:
             ),
             loop_interval_sec=int(os.environ.get("BOT_LOOP_INTERVAL_SEC", str(DEFAULT_LOOP_INTERVAL_SEC))),
             trading_cycle_sec=int(os.environ.get("BOT_TRADING_CYCLE_SEC", str(DEFAULT_TRADING_CYCLE_SEC))),
-            dry_run=os.environ.get("BOT_DRY_RUN", "false").lower() in ("1", "true", "yes"),
+            dry_run=dry_run_value in ("1", "true", "yes"),
             state_file=Path(os.environ.get("BOT_STATE_FILE", "state.ndjson")),
             snapshot_file=Path(os.environ.get("BOT_SNAPSHOT_FILE", "state-snapshot.json")),
             instance_uuid=uuid.uuid4().hex[:12],
@@ -2749,7 +2752,7 @@ async def _close_leg_alo_then_market(
     else:
         cancel_body["clientOrderId"] = alo_coid
     try:
-        r_cancel = await client.request("DELETE", "/exchange/orders", json=cancel_body)
+        r_cancel = await client.delete("/exchange/orders", body=cancel_body)
         log.emit(
             "CLOSE_ALO_CANCELLED",
             arb_id=arb_id, leg=leg_label, exchange=exchange,
