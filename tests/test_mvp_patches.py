@@ -915,11 +915,11 @@ class TestSettingsDefaults:
         with pytest.raises(RuntimeError, match="non-tradable"):
             Settings.from_env()
 
-    def test_from_env_dry_run_default_false(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_from_env_dry_run_default_true(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("VOOI_BEARER_TOKEN", "tok")
         monkeypatch.delenv("BOT_DRY_RUN", raising=False)
         s = Settings.from_env()
-        assert s.dry_run is False
+        assert s.dry_run is True
 
     def test_from_env_asset_blacklist_parsed(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("VOOI_BEARER_TOKEN", "tok")

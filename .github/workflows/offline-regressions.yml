@@ -1,0 +1,40 @@
+name: Offline tests and typing
+
+on:
+  push:
+    branches: [codex/fix-audit-bugs]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline:
+    name: Python ${{ matrix.python }} offline suite
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.12']
+    env:
+      BOT_DRY_RUN: 'true'
+      UV_NO_PROGRESS: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install locked development environment
+        run: |
+          python -m pip install uv==0.13.1
+          uv sync --frozen --extra dev --python "${{ matrix.python }}"
+      - name: Run all offline tests
+        run: uv run --frozen pytest -q -o addopts='' -m 'not integration'
+      - name: Check application types
+        run: uv run --frozen mypy fundbot probe
+      - name: Check new regression files
+        run: uv run --frozen ruff check tests/test_close_cancellation.py tests/test_dry_run_default.py
